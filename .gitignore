@@ -22,6 +22,3 @@ Thumbs.db
 # Build output (if added later)
 dist/
 build/
-
-# Uploaded images
-images/

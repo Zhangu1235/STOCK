@@ -19,7 +19,8 @@
     "express-rate-limit": "^7.0.0",
     "helmet": "^7.0.0",
     "morgan": "^1.10.0",
-    "node-cache": "^5.1.2"
+    "node-cache": "^5.1.2",
+    "@supabase/supabase-js": "^2.39.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.0"

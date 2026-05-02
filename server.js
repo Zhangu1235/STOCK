@@ -14,6 +14,7 @@ const NodeCache  = require('node-cache');
 const path       = require('path');
 const fs         = require('fs');
 const crypto     = require('crypto');
+const { createClient } = require('@supabase/supabase-js');
 
 // ─────────────────────────────────────────────────
 //  ENV / CONFIG
@@ -27,6 +28,10 @@ const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
 
 const VERSION = require('./package.json').version;
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+
+const supabase = SUPABASE_URL && SUPABASE_ANON_KEY ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
 // ─────────────────────────────────────────────────
 //  IN-MEMORY CACHE
@@ -87,12 +92,6 @@ app.use('/api/', limiter);
 app.use(express.static(path.join(__dirname), {
   index: 'index.html',
   maxAge: IS_PROD ? '1d' : 0,
-  etag: true,
-}));
-
-// Serve stored images
-app.use('/images', express.static(path.join(__dirname, 'images'), {
-  maxAge: IS_PROD ? '7d' : 0,
   etag: true,
 }));
 
@@ -332,11 +331,37 @@ app.get('/api/search', async (req, res) => {
   }
 });
 
+// News
+app.get('/api/news', async (req, res) => {
+  const { symbol = '^NSEI', count = 10 } = req.query;
+  const cacheKey = `news:${symbol}:${count}`;
+  try {
+    const data = await cached(cacheKey, 300, async () => { // 5 min cache
+      const url = `${YF_BASE2}/v1/finance/search?q=${encodeURIComponent(symbol)}&quotesCount=1&newsCount=${count}&enableFuzzyQuery=false&region=IN&lang=en-IN`;
+      const json = await yfFetch(url);
+      return (json?.news || []).map(n => ({
+        title: n.title,
+        url: n.link,
+        source: n.publisher,
+        time: n.providerPublishTime,
+        summary: n.summary || '',
+        relatedTickers: n.relatedTickers || []
+      }));
+    });
+    res.json({ success: true, data });
+  } catch (e) {
+    res.status(502).json({ success: false, error: errorMessage(e) });
+  }
+});
+
 // AI Chart Analysis
 app.post('/api/ai-analyze', async (req, res) => {
   const { image } = req.body;
   if (!GROQ_API_KEY) {
     return res.status(503).json({ success: false, error: 'AI analysis not configured' });
+  }
+  if (!supabase) {
+    return res.status(503).json({ success: false, error: 'File storage not configured' });
   }
   if (!image || typeof image !== 'string' || image.length > 10 * 1024 * 1024) { // 10MB limit
     return res.status(400).json({ success: false, error: 'Invalid image data' });
@@ -344,12 +369,18 @@ app.post('/api/ai-analyze', async (req, res) => {
 
   // Generate unique ID for the image
   const imageId = crypto.randomUUID() + '.png';
-  const imagePath = path.join(__dirname, 'images', imageId);
 
   try {
-    // Save the image
+    // Upload to Supabase storage
     const buffer = Buffer.from(image, 'base64');
-    fs.writeFileSync(imagePath, buffer);
+    const { data, error } = await supabase.storage
+      .from('images') // Assuming bucket named 'images'
+      .upload(imageId, buffer, {
+        contentType: 'image/png',
+        upsert: false
+      });
+
+    if (error) throw error;
 
     const groqRes = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
       model: 'meta-llama/llama-4-scout-17b-16e-instruct',
@@ -378,13 +409,53 @@ app.post('/api/ai-analyze', async (req, res) => {
       result = { signal: 'HOLD', patterns: ['Parse error'], support: 'N/A', resistance: 'N/A', trend: 'N/A', confidence: 'Low', analysis: raw.slice(0, 300) };
     }
 
-    // Include image ID in response for potential reuse
-    res.json({ success: true, data: { ...result, imageId } });
+    // Include image URL in response
+    const { data: urlData } = supabase.storage.from('images').getPublicUrl(imageId);
+    res.json({ success: true, data: { ...result, imageUrl: urlData.publicUrl } });
   } catch (e) {
     console.error('[ai-analyze]', errorMessage(e));
-    // Clean up failed image if saved
-    if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
     res.status(502).json({ success: false, error: 'AI analysis failed: ' + errorMessage(e) });
+  }
+});
+
+// Advisor Chatbot
+app.post('/api/chat', async (req, res) => {
+  const { message, history = [] } = req.body;
+  if (!GROQ_API_KEY) {
+    return res.status(503).json({ success: false, error: 'AI chat not configured' });
+  }
+  if (!message || typeof message !== 'string' || message.length > 1000) {
+    return res.status(400).json({ success: false, error: 'Invalid message' });
+  }
+
+  try {
+    const messages = [
+      {
+        role: 'system',
+        content: 'You are a professional NSE/BSE stock market advisor. Provide helpful, accurate investment advice based on technical and fundamental analysis. Always include disclaimers that this is not financial advice. Keep responses concise and actionable. Focus on Indian markets.'
+      },
+      ...history.slice(-10), // Last 10 messages
+      { role: 'user', content: message }
+    ];
+
+    const groqRes = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
+      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+      max_tokens: 500,
+      messages,
+      temperature: 0.7
+    }, {
+      headers: {
+        'Authorization': `Bearer ${GROQ_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      timeout: 30000
+    });
+
+    const reply = groqRes.data.choices?.[0]?.message?.content || 'Sorry, I could not generate a response.';
+    res.json({ success: true, reply });
+  } catch (e) {
+    console.error('[chat]', errorMessage(e));
+    res.status(502).json({ success: false, error: 'Chat failed: ' + errorMessage(e) });
   }
 });
 
