@@ -12,6 +12,8 @@ const compression = require('compression');
 const morgan     = require('morgan');
 const NodeCache  = require('node-cache');
 const path       = require('path');
+const fs         = require('fs');
+const crypto     = require('crypto');
 
 // ─────────────────────────────────────────────────
 //  ENV / CONFIG
@@ -85,6 +87,12 @@ app.use('/api/', limiter);
 app.use(express.static(path.join(__dirname), {
   index: 'index.html',
   maxAge: IS_PROD ? '1d' : 0,
+  etag: true,
+}));
+
+// Serve stored images
+app.use('/images', express.static(path.join(__dirname, 'images'), {
+  maxAge: IS_PROD ? '7d' : 0,
   etag: true,
 }));
 
@@ -334,7 +342,15 @@ app.post('/api/ai-analyze', async (req, res) => {
     return res.status(400).json({ success: false, error: 'Invalid image data' });
   }
 
+  // Generate unique ID for the image
+  const imageId = crypto.randomUUID() + '.png';
+  const imagePath = path.join(__dirname, 'images', imageId);
+
   try {
+    // Save the image
+    const buffer = Buffer.from(image, 'base64');
+    fs.writeFileSync(imagePath, buffer);
+
     const groqRes = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
       model: 'meta-llama/llama-4-scout-17b-16e-instruct',
       max_tokens: 900,
@@ -362,9 +378,12 @@ app.post('/api/ai-analyze', async (req, res) => {
       result = { signal: 'HOLD', patterns: ['Parse error'], support: 'N/A', resistance: 'N/A', trend: 'N/A', confidence: 'Low', analysis: raw.slice(0, 300) };
     }
 
-    res.json({ success: true, data: result });
+    // Include image ID in response for potential reuse
+    res.json({ success: true, data: { ...result, imageId } });
   } catch (e) {
     console.error('[ai-analyze]', errorMessage(e));
+    // Clean up failed image if saved
+    if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
     res.status(502).json({ success: false, error: 'AI analysis failed: ' + errorMessage(e) });
   }
 });
