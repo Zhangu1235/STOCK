@@ -23,7 +23,7 @@
   style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
   font-src https://fonts.gstatic.com;
   img-src 'self' data: blob:;
-  connect-src 'self' https://api.groq.com https://query1.finance.yahoo.com https://query2.finance.yahoo.com;
+   connect-src 'self' https://query1.finance.yahoo.com https://query2.finance.yahoo.com;
 ">
 
 <!-- Favicon (inline SVG terminal icon) -->
@@ -354,12 +354,9 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
           <div class="u-sub">PNG · JPG · WEBP · up to 20MB</div>
         </div>
         <img id="prev-img" alt="preview">
-        <div>
-          <div class="ai-sec-title" style="margin-bottom:5px">GROQ API KEY</div>
-          <input class="key-inp" type="password" id="groqKey" placeholder="gsk_xxxxxxxxxxxxxxxx" autocomplete="off" spellcheck="false">
-          <div style="font-size:7px;color:var(--muted);margin-top:4px">Free at console.groq.com · Uses Llama 4 Scout (vision)</div>
-          <div style="font-size:7px;color:var(--amber);margin-top:3px">⚠ Key is sent client-side. Do not share this page publicly with your key stored.</div>
-        </div>
+         <div style="font-size:9px;color:var(--muted2);text-align:center;margin-bottom:8px">
+           AI analysis powered by Groq Llama 4 Scout
+         </div>
         <button class="run-btn" id="runBtn" onclick="runAI()">⚡ ANALYZE CHART</button>
         <div class="ai-loader" id="aiLoader"><span></span><span></span><span></span><span style="margin-left:4px">Analyzing with Groq...</span></div>
         <div class="result-box" id="resultBox">
@@ -757,8 +754,6 @@ function onDrop(e) {
 }
 
 async function runAI() {
-  const key = document.getElementById('groqKey').value.trim();
-  if (!key) { alert('Enter your Groq API key first'); return; }
   if (!base64Img) { alert('Upload a chart image first'); return; }
 
   const btn = document.getElementById('runBtn');
@@ -768,28 +763,16 @@ async function runAI() {
   document.getElementById('resultBox').style.display = 'none';
 
   try {
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const res = await fetch(`${API}/api/ai-analyze`, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-        max_tokens: 900,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image_url', image_url: { url: `data:image/png;base64,${base64Img}` } },
-            { type: 'text', text: `You are an expert NSE/BSE technical analyst. Analyze this Indian stock market candlestick chart. Reply ONLY in valid JSON (no markdown fences):
-{"signal":"BUY|SELL|HOLD","patterns":["..."],"support":"price","resistance":"price","trend":"Bullish|Bearish|Sideways","confidence":"High|Medium|Low","analysis":"2-3 sentence technical analysis mentioning specific patterns, momentum, and volume if visible"}` }
-          ]
-        }]
-      })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: base64Img })
     });
 
-    const data = await res.json();
-    const raw = data.choices?.[0]?.message?.content || '{}';
-    let result;
-    try { result = JSON.parse(raw.replace(/```json|```/g, '').trim()); }
-    catch { result = { signal: 'HOLD', patterns: ['Parse error'], support: 'N/A', resistance: 'N/A', trend: 'N/A', confidence: 'Low', analysis: raw.slice(0, 300) }; }
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error);
+
+    const result = json.data;
 
     const sig = (result.signal || 'HOLD').toUpperCase();
     const badge = document.getElementById('sigBadge');
@@ -807,7 +790,7 @@ async function runAI() {
     document.getElementById('resultBox').style.display = 'flex';
 
   } catch (e) {
-    alert('Groq API error: ' + e.message);
+    alert('AI analysis error: ' + e.message);
   } finally {
     document.getElementById('aiLoader').style.display = 'none';
     btn.disabled = false;

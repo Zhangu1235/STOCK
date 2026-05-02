@@ -24,6 +24,7 @@ const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   : null; // null = allow all in development
 
 const VERSION = require('./package.json').version;
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
 // ─────────────────────────────────────────────────
 //  IN-MEMORY CACHE
@@ -320,6 +321,51 @@ app.get('/api/search', async (req, res) => {
     res.json({ success: true, data });
   } catch (e) {
     res.status(502).json({ success: false, error: errorMessage(e) });
+  }
+});
+
+// AI Chart Analysis
+app.post('/api/ai-analyze', async (req, res) => {
+  const { image } = req.body;
+  if (!GROQ_API_KEY) {
+    return res.status(503).json({ success: false, error: 'AI analysis not configured' });
+  }
+  if (!image || typeof image !== 'string' || image.length > 10 * 1024 * 1024) { // 10MB limit
+    return res.status(400).json({ success: false, error: 'Invalid image data' });
+  }
+
+  try {
+    const groqRes = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
+      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+      max_tokens: 900,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image_url', image_url: { url: `data:image/png;base64,${image}` } },
+          { type: 'text', text: `You are an expert NSE/BSE technical analyst. Analyze this Indian stock market candlestick chart. Reply ONLY in valid JSON (no markdown fences):
+{"signal":"BUY|SELL|HOLD","patterns":["..."],"support":"price","resistance":"price","trend":"Bullish|Bearish|Sideways","confidence":"High|Medium|Low","analysis":"2-3 sentence technical analysis mentioning specific patterns, momentum, and volume if visible"}` }
+        ]
+      }]
+    }, {
+      headers: {
+        'Authorization': `Bearer ${GROQ_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      timeout: 30000
+    });
+
+    const raw = groqRes.data.choices?.[0]?.message?.content || '{}';
+    let result;
+    try {
+      result = JSON.parse(raw.replace(/```json|```/g, '').trim());
+    } catch {
+      result = { signal: 'HOLD', patterns: ['Parse error'], support: 'N/A', resistance: 'N/A', trend: 'N/A', confidence: 'Low', analysis: raw.slice(0, 300) };
+    }
+
+    res.json({ success: true, data: result });
+  } catch (e) {
+    console.error('[ai-analyze]', errorMessage(e));
+    res.status(502).json({ success: false, error: 'AI analysis failed: ' + errorMessage(e) });
   }
 });
 
