@@ -1404,6 +1404,198 @@
         padding: 6px 8px
       }
     }
+
+    /* ── AI SCAN OVERHAUL ── */
+    .ai-scan-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 2px
+    }
+
+    .ai-powered-badge {
+      font-size: 8px;
+      letter-spacing: 1px;
+      color: var(--green);
+      background: rgba(0, 212, 126, .08);
+      border: 1px solid rgba(0, 212, 126, .2);
+      padding: 2px 7px;
+      border-radius: 10px
+    }
+
+    /* Upload area — active drag */
+    .upload-area.drag-over {
+      border-color: var(--green);
+      background: rgba(0, 212, 126, .06);
+      transform: scale(1.01)
+    }
+
+    /* Image preview with change-image overlay */
+    .img-preview-wrap {
+      position: relative;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid var(--border)
+    }
+
+    .img-preview-wrap img {
+      width: 100%;
+      max-height: 150px;
+      object-fit: cover;
+      display: block
+    }
+
+    .img-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(7, 11, 15, .55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity .2s
+    }
+
+    .img-preview-wrap:hover .img-overlay {
+      opacity: 1
+    }
+
+    .change-img-btn {
+      background: rgba(7, 11, 15, .85);
+      border: 1px solid var(--border2);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      padding: 6px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      letter-spacing: .5px;
+      transition: all .15s
+    }
+
+    .change-img-btn:hover {
+      border-color: var(--red);
+      color: var(--red)
+    }
+
+    /* Action row */
+    .ai-action-row {
+      display: flex;
+      gap: 6px
+    }
+
+    .ai-action-row .run-btn {
+      display: block;
+      flex: 1;
+      margin: 0
+    }
+
+    /* Error display */
+    .ai-error {
+      display: none;
+      background: rgba(255, 61, 95, .08);
+      border: 1px solid rgba(255, 61, 95, .3);
+      border-radius: 4px;
+      padding: 7px 10px;
+      font-size: 9px;
+      color: var(--red);
+      line-height: 1.5
+    }
+
+    /* Result header with re-analyze */
+    .result-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px
+    }
+
+    .re-analyze-btn {
+      background: none;
+      border: 1px solid var(--border2);
+      color: var(--muted2);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8px;
+      padding: 4px 8px;
+      border-radius: 3px;
+      cursor: pointer;
+      letter-spacing: .5px;
+      white-space: nowrap;
+      transition: all .15s;
+      flex-shrink: 0;
+      margin-top: 14px
+    }
+
+    .re-analyze-btn:hover:not(:disabled) {
+      border-color: var(--green);
+      color: var(--green)
+    }
+
+    .re-analyze-btn:disabled {
+      opacity: .4;
+      cursor: not-allowed
+    }
+
+    /* History improvements */
+    .history-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px
+    }
+
+    .clear-history-btn {
+      background: none;
+      border: 1px solid var(--border2);
+      color: var(--muted2);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7px;
+      padding: 2px 7px;
+      border-radius: 2px;
+      cursor: pointer;
+      letter-spacing: .5px;
+      transition: all .15s
+    }
+
+    .clear-history-btn:hover {
+      border-color: var(--red);
+      color: var(--red)
+    }
+
+    .history-item-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 3px
+    }
+
+    .history-summary {
+      font-size: 8px;
+      color: var(--muted2);
+      line-height: 1.4
+    }
+
+    /* Capture chart button */
+    .capture-btn {
+      width: 100%;
+      padding: 8px;
+      background: transparent;
+      border: 1.5px dashed rgba(0, 212, 126, .35);
+      border-radius: 4px;
+      color: var(--green);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: all .2s;
+    }
+
+    .capture-btn:hover {
+      border-color: var(--green);
+      background: rgba(0, 212, 126, .06);
+      box-shadow: 0 0 12px rgba(0, 212, 126, .12)
+    }
   </style>
 </head>
 
@@ -1498,6 +1690,7 @@
             <div class="sep"></div>
             <button class="tf" id="rsiBtn" onclick="toggleIndicator('rsi')" title="Toggle RSI">RSI</button>
             <button class="tf" id="macdBtn" onclick="toggleIndicator('macd')" title="Toggle MACD">MACD</button>
+            <button class="tf" id="volBtn" onclick="toggleIndicator('vol')" title="Toggle Volume">VOL</button>
             <div class="sep"></div>
             <button class="tf" id="alertBtn" onclick="setAlert()" title="Set Price Alert">🔔</button>
             <button class="tf" id="chartTypeBtn" onclick="toggleChartType()">BAR</button>
@@ -1589,28 +1782,58 @@
 
         <!-- AI -->
         <div id="tab-ai" class="ai-wrap" style="display:none">
-          <div class="ai-sec-title">AI CANDLE CHART ANALYSER</div>
-          <div class="upload-area" id="uArea" ondragover="event.preventDefault();this.style.borderColor='var(--green)'"
-            ondragleave="this.style.borderColor=''" ondrop="onDrop(event)">
-            <input type="file" accept="image/*" onchange="onFile(this.files[0])">
+          <div class="ai-scan-header">
+            <div class="ai-sec-title">AI CANDLE CHART ANALYSER</div>
+            <div class="ai-powered-badge">⚡ GROQ VISION</div>
+          </div>
+
+          <!-- Upload zone (shown when no image) -->
+          <div class="upload-area" id="uArea"
+            ondragover="event.preventDefault();this.classList.add('drag-over')"
+            ondragleave="this.classList.remove('drag-over')"
+            ondrop="onDrop(event)">
+            <input type="file" id="fileInput" accept="image/*" onchange="onFile(this.files[0])">
             <div class="u-icon">📊</div>
-            <div class="u-title">Upload candle chart screenshot</div>
-            <div class="u-sub">PNG · JPG · WEBP · up to 20MB</div>
+            <div class="u-title">Drop chart screenshot here</div>
+            <div class="u-sub">PNG · JPG · WEBP · Click or drag to upload</div>
           </div>
-          <img id="prev-img" alt="preview">
-          <div style="font-size:9px;color:var(--muted2);text-align:center;margin-bottom:8px">
-            AI analysis powered
+
+          <!-- Preview (shown after image selected) -->
+          <div class="img-preview-wrap" id="imgPreviewWrap" style="display:none">
+            <img id="prev-img" alt="chart preview">
+            <div class="img-overlay">
+              <button class="change-img-btn" onclick="clearImage()" title="Choose different image">✕ Change Image</button>
+            </div>
           </div>
-          <button class="run-btn" id="runBtn" onclick="runAI()">⚡ ANALYZE CHART</button>
-          <div class="ai-loader" id="aiLoader"><span></span><span></span><span></span><span
-              style="margin-left:4px">Analyzing with Groq...</span></div>
+
+          <!-- Capture chart button (always visible) -->
+          <button class="capture-btn" id="captureBtn" onclick="captureChart()" title="Screenshot the live MKTVIEW chart and send to AI">📷 CAPTURE LIVE CHART</button>
+
+          <!-- Action row -->
+          <div class="ai-action-row" id="aiActionRow" style="display:none">
+            <button class="run-btn" id="runBtn" onclick="runAI()">⚡ ANALYZE CHART</button>
+          </div>
+
+          <!-- Loader -->
+          <div class="ai-loader" id="aiLoader">
+            <span></span><span></span><span></span>
+            <span style="margin-left:6px">Analyzing with Groq Vision...</span>
+          </div>
+
+          <!-- Error -->
+          <div class="ai-error" id="aiError"></div>
+
+          <!-- Result -->
           <div class="result-box" id="resultBox">
-            <div>
-              <div class="r-label">SIGNAL</div>
-              <div class="sig" id="sigBadge">—</div>
+            <div class="result-header">
+              <div>
+                <div class="r-label">SIGNAL</div>
+                <div class="sig" id="sigBadge">—</div>
+              </div>
+              <button class="re-analyze-btn" onclick="runAI()" title="Re-analyze">↻ RE-ANALYZE</button>
             </div>
             <div>
-              <div class="r-label">PATTERNS</div>
+              <div class="r-label">PATTERNS DETECTED</div>
               <div class="ptags" id="ptags"></div>
             </div>
             <div class="lvl-row" id="lvlRow"></div>
@@ -1619,8 +1842,13 @@
               <div class="ai-txt" id="aiTxt"></div>
             </div>
           </div>
+
+          <!-- History -->
           <div class="history-section" id="historySection">
-            <div class="history-title">ANALYSIS HISTORY</div>
+            <div class="history-header">
+              <div class="history-title">ANALYSIS HISTORY</div>
+              <button class="clear-history-btn" onclick="clearHistory()">CLEAR</button>
+            </div>
             <div class="history-list" id="historyList"></div>
           </div>
         </div>
@@ -1667,6 +1895,7 @@
     let lineSeries = null;
     let rsiSeries = null;
     let macdSeries = null;
+    let volumeSeries = null;
     let stocksCache = [];
     let base64Img = null;
     let refreshTimer = null;
@@ -1696,6 +1925,9 @@
 
       // Auto-refresh
       setInterval(refreshAll, 30000);
+
+      // Keyboard shortcuts
+      initKeyboardShortcuts();
     });
 
     async function refreshAll() {
@@ -1825,6 +2057,10 @@
     function initChart() {
       const container = document.getElementById('chart');
       const isLight = document.body.classList.contains('light-theme');
+
+      // Destroy previous chart if re-initialising (theme toggle)
+      if (lwChart) { lwChart.remove(); lwChart = null; candleSeries = null; volumeSeries = null; rsiSeries = null; macdSeries = null; }
+
       lwChart = LightweightCharts.createChart(container, {
         layout: { background: { color: isLight ? '#ffffff' : '#131b24' }, textColor: isLight ? '#64748b' : '#5a7896' },
         grid: { vertLines: { color: isLight ? '#e2e8f0' : '#1c2b3a' }, horzLines: { color: isLight ? '#e2e8f0' : '#1c2b3a' } },
@@ -1839,15 +2075,26 @@
         upColor: '#00d47e', downColor: '#ff3d5f',
         borderUpColor: '#00d47e', borderDownColor: '#ff3d5f',
         wickUpColor: '#00d47e', wickDownColor: '#ff3d5f',
+        priceScaleId: 'right',
       });
+
+      // Volume histogram (default ON)
+      volumeSeries = lwChart.addHistogramSeries({
+        color: 'rgba(0,212,126,0.18)',
+        priceFormat: { type: 'volume' },
+        priceScaleId: 'vol',
+      });
+      lwChart.priceScale('vol').applyOptions({
+        scaleMargins: { top: 0.82, bottom: 0 },
+        borderVisible: false,
+      });
+      document.getElementById('volBtn').classList.add('act');
 
       // Crosshair OHLCV tooltip
       lwChart.subscribeCrosshairMove(p => {
         if (!p.seriesData) return;
         const bar = p.seriesData.get(candleSeries);
-        if (bar) {
-          setOHLCV(bar.open, bar.high, bar.low, bar.close, bar.volume || 0);
-        }
+        if (bar) setOHLCV(bar.open, bar.high, bar.low, bar.close, bar.volume || 0);
       });
 
       new ResizeObserver(() => {
@@ -1875,6 +2122,16 @@
 
         if (chartType === 'candle' || chartType === 'bar') {
           candleSeries.setData(candles);
+        }
+
+        // Volume bars
+        if (volumeSeries) {
+          const volData = candles.map(c => ({
+            time: c.time,
+            value: c.volume || 0,
+            color: c.close >= c.open ? 'rgba(0,212,126,0.22)' : 'rgba(255,61,95,0.22)'
+          }));
+          volumeSeries.setData(volData);
         }
 
         // Update indicators if active
@@ -1986,8 +2243,23 @@
         } else {
           macdSeries = lwChart.addLineSeries({ color: '#ffb340', lineWidth: 1, title: 'MACD' });
           btn.classList.add('act');
-          // Calculate and set MACD data
           calculateMACD();
+        }
+      } else if (type === 'vol') {
+        if (volumeSeries) {
+          lwChart.removeSeries(volumeSeries);
+          volumeSeries = null;
+          btn.classList.remove('act');
+        } else {
+          volumeSeries = lwChart.addHistogramSeries({
+            color: 'rgba(0,212,126,0.18)',
+            priceFormat: { type: 'volume' },
+            priceScaleId: 'vol',
+          });
+          lwChart.priceScale('vol').applyOptions({ scaleMargins: { top: 0.82, bottom: 0 }, borderVisible: false });
+          btn.classList.add('act');
+          // Re-fetch data to populate volume series
+          loadCandles(activeSymbol, chartInterval, chartRange);
         }
       }
     }
@@ -1998,11 +2270,97 @@
         el2.style.display = t === id ? (t === 'watchlist' ? '' : 'flex') : 'none';
         if (t === 'watchlist') el2.style.display = t === id ? '' : 'none';
       });
-      document.querySelectorAll('.r-tab').forEach(t => t.classList.remove('act'));
-      el.classList.add('act');
+      document.querySelectorAll('.r-tab').forEach((t, i) => {
+        t.classList.toggle('act', ['watchlist','heatmap','news','chat','ai'][i] === id);
+      });
       if (id === 'ai') renderHistory();
       if (id === 'news') loadNews();
       if (id === 'chat') initChat();
+    }
+
+    // ─────────────────────────────────────────────────
+    //  CAPTURE CHART → AI SCAN
+    // ─────────────────────────────────────────────────
+    function captureChart() {
+      const chartEl = document.getElementById('chart');
+      const canvas = chartEl.querySelector('canvas');
+      if (!canvas) { showAiError('Chart not ready — please wait for data to load.'); return; }
+
+      try {
+        const dataUrl = canvas.toDataURL('image/png');
+        base64Img = dataUrl.split(',')[1];
+
+        // Show preview in AI SCAN
+        const img = document.getElementById('prev-img');
+        img.src = dataUrl;
+        document.getElementById('uArea').style.display = 'none';
+        document.getElementById('imgPreviewWrap').style.display = 'block';
+        document.getElementById('aiActionRow').style.display = 'block';
+        document.getElementById('resultBox').style.display = 'none';
+        document.getElementById('aiError').style.display = 'none';
+
+        // Switch to AI SCAN tab
+        rTab('ai', document.querySelector('.r-tab:last-child'));
+
+        setFooter('CHART CAPTURED · CLICK ⚡ ANALYZE CHART TO SCAN');
+      } catch (e) {
+        showAiError('Could not capture chart: ' + e.message);
+      }
+    }
+
+    // ─────────────────────────────────────────────────
+    //  KEYBOARD SHORTCUTS
+    // ─────────────────────────────────────────────────
+    function initKeyboardShortcuts() {
+      const tfBtns = document.querySelectorAll('.tf[onclick^="setTF"]');
+      const tfMap = {
+        '1': [tfBtns[0], '1m', '1d'],
+        '2': [tfBtns[1], '5m', '1d'],
+        '3': [tfBtns[2], '15m', '5d'],
+        '4': [tfBtns[3], '1h', '1mo'],
+        '5': [tfBtns[4], '1d', '1y'],
+        '6': [tfBtns[5], '1wk', '5y'],
+      };
+      const tabMap = {
+        'w': 'watchlist', 'W': 'watchlist',
+        'h': 'heatmap',   'H': 'heatmap',
+        'n': 'news',      'N': 'news',
+        'a': 'chat',      'A': 'chat',   // A = Advisor
+        's': 'ai',        'S': 'ai',     // S = Scan
+      };
+
+      document.addEventListener('keydown', e => {
+        // Skip if typing in any input
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+        // Timeframe shortcuts: 1-6
+        if (tfMap[e.key]) {
+          const [btn, interval, range] = tfMap[e.key];
+          if (btn) setTF(btn, interval, range);
+          return;
+        }
+
+        // Tab shortcuts
+        if (tabMap[e.key]) {
+          const tabId = tabMap[e.key];
+          const tabEl = [...document.querySelectorAll('.r-tab')]
+            .find(t => t.getAttribute('onclick')?.includes("'" + tabId + "'"));
+          rTab(tabId, tabEl);
+          return;
+        }
+
+        // / to focus search
+        if (e.key === '/') {
+          e.preventDefault();
+          document.getElementById('searchInput').focus();
+        }
+
+        // Escape to close search
+        if (e.key === 'Escape') {
+          closeSearch();
+          document.getElementById('searchInput').blur();
+        }
+      });
     }
 
     // ─────────────────────────────────────────────────
@@ -2042,32 +2400,63 @@
     // ─────────────────────────────────────────────────
     function onFile(file) {
       if (!file) return;
+      if (file.size > 8 * 1024 * 1024) {
+        showAiError('Image too large. Please use an image under 8 MB.');
+        return;
+      }
       const reader = new FileReader();
       reader.onload = e => {
         base64Img = e.target.result.split(',')[1];
         const img = document.getElementById('prev-img');
         img.src = e.target.result;
-        img.style.display = 'block';
+        // Switch to preview state
         document.getElementById('uArea').style.display = 'none';
-        document.getElementById('runBtn').style.display = 'block';
+        document.getElementById('imgPreviewWrap').style.display = 'block';
+        document.getElementById('aiActionRow').style.display = 'block';
         document.getElementById('resultBox').style.display = 'none';
+        document.getElementById('aiError').style.display = 'none';
       };
       reader.readAsDataURL(file);
     }
+
+    function clearImage() {
+      base64Img = null;
+      // Reset file input so same file can be re-selected
+      const fi = document.getElementById('fileInput');
+      fi.value = '';
+      // Reset UI back to upload state
+      document.getElementById('uArea').style.display = 'flex';
+      document.getElementById('imgPreviewWrap').style.display = 'none';
+      document.getElementById('aiActionRow').style.display = 'none';
+      document.getElementById('resultBox').style.display = 'none';
+      document.getElementById('aiError').style.display = 'none';
+      document.getElementById('prev-img').src = '';
+    }
+
     function onDrop(e) {
       e.preventDefault();
+      e.currentTarget.classList.remove('drag-over');
       const file = e.dataTransfer.files[0];
       if (file && file.type.startsWith('image/')) onFile(file);
     }
 
+    function showAiError(msg) {
+      const el = document.getElementById('aiError');
+      el.textContent = '⚠ ' + msg;
+      el.style.display = 'block';
+    }
+
     async function runAI() {
-      if (!base64Img) { alert('Upload a chart image first'); return; }
+      if (!base64Img) { showAiError('Upload a chart image first'); return; }
 
       const btn = document.getElementById('runBtn');
+      const reBtn = document.querySelector('.re-analyze-btn');
       btn.disabled = true;
       btn.textContent = 'ANALYZING...';
+      if (reBtn) reBtn.disabled = true;
       document.getElementById('aiLoader').style.display = 'flex';
       document.getElementById('resultBox').style.display = 'none';
+      document.getElementById('aiError').style.display = 'none';
 
       try {
         const res = await fetch(`${API}/api/ai-analyze`, {
@@ -2089,9 +2478,9 @@
         document.getElementById('ptags').innerHTML = (result.patterns || []).map(p => `<span class="ptag">${p}</span>`).join('');
 
         document.getElementById('lvlRow').innerHTML = `
-      <div class="lvl-box"><div class="lvl-l">SUPPORT</div><div class="lvl-v down">${result.support || 'N/A'}</div></div>
-      <div class="lvl-box"><div class="lvl-l">RESISTANCE</div><div class="lvl-v up">${result.resistance || 'N/A'}</div></div>
-      <div class="lvl-box"><div class="lvl-l">TREND</div><div class="lvl-v">${result.trend || 'N/A'}</div></div>`;
+          <div class="lvl-box"><div class="lvl-l">SUPPORT</div><div class="lvl-v down">${result.support || 'N/A'}</div></div>
+          <div class="lvl-box"><div class="lvl-l">RESISTANCE</div><div class="lvl-v up">${result.resistance || 'N/A'}</div></div>
+          <div class="lvl-box"><div class="lvl-l">TREND</div><div class="lvl-v">${result.trend || 'N/A'}</div></div>`;
 
         document.getElementById('aiTxt').textContent = result.analysis || '';
         document.getElementById('resultBox').style.display = 'flex';
@@ -2102,20 +2491,20 @@
           timestamp: new Date().toISOString(),
           signal: result.signal,
           confidence: result.confidence,
-          imageUrl: result.imageUrl,
           summary: result.analysis?.slice(0, 100) + '...'
         };
         aiHistory.unshift(historyItem);
-        if (aiHistory.length > 10) aiHistory = aiHistory.slice(0, 10); // Keep last 10
+        if (aiHistory.length > 10) aiHistory = aiHistory.slice(0, 10);
         localStorage.setItem('aiHistory', JSON.stringify(aiHistory));
         renderHistory();
 
       } catch (e) {
-        alert('AI analysis error: ' + e.message);
+        showAiError('Analysis failed: ' + e.message);
       } finally {
         document.getElementById('aiLoader').style.display = 'none';
         btn.disabled = false;
         btn.textContent = '⚡ ANALYZE CHART';
+        if (reBtn) reBtn.disabled = false;
       }
     }
 
@@ -2210,25 +2599,34 @@
       section.style.display = 'block';
       list.innerHTML = aiHistory.map(item => {
         const time = new Date(item.timestamp).toLocaleString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-        const sigClass = (item.signal || 'HOLD').toLowerCase();
+        const sig = (item.signal || 'HOLD').toUpperCase();
+        const sigClass = sig.toLowerCase();
+        const sigColor = sigClass === 'buy' ? 'var(--green)' : sigClass === 'sell' ? 'var(--red)' : 'var(--amber)';
         return `<div class="history-item" onclick="loadHistoryItem('${item.id}')">
-      <div class="history-time">${time}</div>
-      <div class="history-sig ${sigClass}">${item.signal || 'HOLD'} ${item.confidence ? `· ${item.confidence}` : ''}</div>
-      <div style="font-size:8px;color:var(--muted2);margin-top:2px">${item.summary}</div>
-    </div>`;
+          <div class="history-item-top">
+            <span class="history-time">${time}</span>
+            <span class="history-sig ${sigClass}">${sig}${item.confidence ? ' · ' + item.confidence : ''}</span>
+          </div>
+          <div class="history-summary">${item.summary}</div>
+        </div>`;
       }).join('');
+    }
+
+    function clearHistory() {
+      aiHistory = [];
+      localStorage.removeItem('aiHistory');
+      renderHistory();
     }
 
     function loadHistoryItem(id) {
       const item = aiHistory.find(h => h.id == id);
       if (!item) return;
-      // Load the result back (simplified - just show signal and analysis)
       document.getElementById('sigBadge').textContent = item.signal + (item.confidence ? ` · ${item.confidence}` : '');
       document.getElementById('sigBadge').className = `sig sig-${item.signal.toLowerCase()}`;
       document.getElementById('aiTxt').textContent = item.summary;
+      document.getElementById('ptags').innerHTML = '';
+      document.getElementById('lvlRow').innerHTML = '';
       document.getElementById('resultBox').style.display = 'flex';
-      // If image URL exists, open in new tab
-      if (item.imageUrl) window.open(item.imageUrl, '_blank');
     }
 
     function toggleTheme() {
