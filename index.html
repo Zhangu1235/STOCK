@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,viewport-fit=cover">
   <title>MKTVIEW — Live NSE/BSE Stock Terminal</title>
 
   <!-- SEO -->
@@ -89,7 +89,7 @@
       background: var(--bg);
       color: var(--text);
       font-family: 'JetBrains Mono', monospace;
-      height: 100vh;
+      height: 100dvh;
       overflow: hidden;
       display: flex;
       flex-direction: column
@@ -344,9 +344,10 @@
     /* ── BODY ── */
     .body {
       display: grid;
-      grid-template-columns: 1fr 320px;
+      grid-template-columns: 1fr clamp(240px, 25vw, 320px);
       flex: 1;
-      overflow: hidden
+      overflow: hidden;
+      min-height: 0
     }
 
     /* ── LEFT ── */
@@ -1313,14 +1314,135 @@
       display: none
     }
 
-    /* Responsive */
-    @media(max-width:768px) {
+    /* ── RESPONSIVE ── */
+
+    /* Mac / small laptops 1280px and below */
+    @media (max-width: 1280px) {
       .body {
-        grid-template-columns: 1fr
+        grid-template-columns: 1fr clamp(220px, 22vw, 290px)
+      }
+
+      .idx-price {
+        font-size: 14px
+      }
+
+      .chart-price-live {
+        font-size: 18px
+      }
+
+      .topbar {
+        padding: 0 12px
+      }
+
+      .tb-center {
+        max-width: 280px
+      }
+
+      .chart-controls {
+        flex-wrap: wrap;
+        gap: 3px
+      }
+    }
+
+    /* iPad Pro / large tablets */
+    @media (max-width: 1024px) {
+      .body {
+        grid-template-columns: 1fr clamp(200px, 28vw, 260px)
+      }
+
+      .idx-row {
+        grid-template-columns: repeat(4, 1fr)
+      }
+
+      .idx-price {
+        font-size: 13px
+      }
+
+      .idx-label {
+        font-size: 7px
+      }
+
+      .idx-sub {
+        font-size: 7px
+      }
+
+      .chart-sym {
+        font-size: 13px
+      }
+
+      .chart-price-live {
+        font-size: 16px
+      }
+
+      .topbar {
+        height: 42px;
+        padding: 0 10px
+      }
+
+      .tb-center {
+        max-width: 240px
+      }
+
+      .logo {
+        font-size: 14px;
+        letter-spacing: 2px
+      }
+
+      .chart-section {
+        padding: 8px
+      }
+
+      .chart-controls {
+        flex-wrap: wrap;
+        gap: 3px
+      }
+
+      .tf {
+        font-size: 8px;
+        padding: 3px 7px
+      }
+
+      .ohlcv-v {
+        font-size: 10px
+      }
+
+      .r-tab {
+        font-size: 8px;
+        padding: 8px 2px;
+        letter-spacing: .5px
+      }
+    }
+
+    /* Tablets in portrait / large phones landscape */
+    @media (max-width: 768px) {
+      body {
+        height: auto;
+        min-height: 100dvh;
+        overflow-y: auto
+      }
+
+      .body {
+        grid-template-columns: 1fr;
+        height: auto;
+        overflow: visible
+      }
+
+      .left {
+        overflow: visible;
+        border-right: none
+      }
+
+      .chart-box {
+        min-height: 280px
+      }
+
+      #chart {
+        min-height: 280px
       }
 
       .right {
-        display: none
+        max-height: 420px;
+        border-top: 1px solid var(--border)
       }
 
       .idx-row {
@@ -1329,12 +1451,16 @@
 
       .topbar {
         height: 40px;
-        padding: 0 12px;
-        font-size: 11px
+        padding: 0 10px
       }
 
       .logo {
-        font-size: 14px
+        font-size: 13px;
+        letter-spacing: 2px
+      }
+
+      .logo em {
+        display: none
       }
 
       .tb-center {
@@ -1347,7 +1473,12 @@
       }
 
       .tb-right {
-        font-size: 8px
+        font-size: 8px;
+        gap: 8px
+      }
+
+      #mkt-status {
+        display: none
       }
 
       .live-pill {
@@ -1369,7 +1500,7 @@
       }
 
       .idx-price {
-        font-size: 14px
+        font-size: 13px
       }
 
       .idx-sub {
@@ -1377,11 +1508,11 @@
       }
 
       .chart-sym {
-        font-size: 13px
+        font-size: 12px
       }
 
       .chart-price-live {
-        font-size: 16px
+        font-size: 15px
       }
 
       .chart-controls {
@@ -1402,6 +1533,93 @@
       .ohlcv-item {
         flex: 1 1 50%;
         padding: 6px 8px
+      }
+
+      .footer {
+        font-size: 7px;
+        padding: 0 10px
+      }
+    }
+
+    /* Small phones */
+    @media (max-width: 480px) {
+      .logo {
+        font-size: 12px;
+        letter-spacing: 1.5px
+      }
+
+      .tb-center {
+        max-width: 150px
+      }
+
+      .search-wrap input {
+        font-size: 8px;
+        padding: 4px 6px
+      }
+
+      .tb-right {
+        gap: 6px
+      }
+
+      #clock {
+        display: none
+      }
+
+      .idx-row {
+        grid-template-columns: repeat(2, 1fr)
+      }
+
+      .idx-price {
+        font-size: 12px
+      }
+
+      .idx-card {
+        padding: 5px 8px
+      }
+
+      .chart-section {
+        padding: 8px 6px
+      }
+
+      .chart-topbar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px
+      }
+
+      .chart-controls {
+        width: 100%;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        padding-bottom: 2px
+      }
+
+      .chart-controls::-webkit-scrollbar {
+        height: 2px
+      }
+
+      .chart-controls::-webkit-scrollbar-thumb {
+        background: var(--border2)
+      }
+
+      .tf {
+        flex-shrink: 0
+      }
+
+      .chart-box {
+        min-height: 240px
+      }
+
+      #chart {
+        min-height: 240px
+      }
+
+      .ohlcv-v {
+        font-size: 10px
+      }
+
+      .footer {
+        font-size: 6px
       }
     }
 
