@@ -3,26 +3,26 @@
 // ─────────────────────────────────────────────────
 //  DEPENDENCIES
 // ─────────────────────────────────────────────────
-const express    = require('express');
-const cors       = require('cors');
-const axios      = require('axios');
-const helmet     = require('helmet');
-const rateLimit  = require('express-rate-limit');
+const express = require('express');
+const cors = require('cors');
+const axios = require('axios');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 const compression = require('compression');
-const morgan     = require('morgan');
-const NodeCache  = require('node-cache');
-const path       = require('path');
-const fs         = require('fs');
-const crypto     = require('crypto');
+const morgan = require('morgan');
+const NodeCache = require('node-cache');
+const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
 
 // ─────────────────────────────────────────────────
 //  ENV / CONFIG
 // ─────────────────────────────────────────────────
-const PORT            = parseInt(process.env.PORT || '3001', 10);
-const NODE_ENV        = process.env.NODE_ENV || 'development';
-const IS_PROD         = NODE_ENV === 'production';
+const PORT = parseInt(process.env.PORT || '3001', 10);
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const IS_PROD = NODE_ENV === 'production';
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim())
   : null; // null = allow all in development
@@ -100,26 +100,26 @@ app.use(express.static(path.join(__dirname), {
 // ─────────────────────────────────────────────────
 //  CONSTANTS
 // ─────────────────────────────────────────────────
-const YF_BASE  = 'https://query1.finance.yahoo.com';
+const YF_BASE = 'https://query1.finance.yahoo.com';
 const YF_BASE2 = 'https://query2.finance.yahoo.com';
 
 const INDICES = ['^NSEI', '^BSESN', '^NSEBANK', 'NIFTY_MIDCAP_100.NS'];
 
 const NIFTY50 = [
-  'RELIANCE.NS','TCS.NS','HDFCBANK.NS','INFY.NS','ICICIBANK.NS',
-  'HINDUNILVR.NS','SBIN.NS','BHARTIARTL.NS','ITC.NS','KOTAKBANK.NS',
-  'LT.NS','AXISBANK.NS','ASIANPAINT.NS','MARUTI.NS','SUNPHARMA.NS',
-  'TITAN.NS','BAJFINANCE.NS','WIPRO.NS','ULTRACEMCO.NS','HCLTECH.NS',
-  'NESTLEIND.NS','TECHM.NS','POWERGRID.NS','NTPC.NS','ONGC.NS',
-  'JSWSTEEL.NS','GRASIM.NS','BPCL.NS','TMCV.NS','HINDALCO.NS',
-  'COALINDIA.NS','DRREDDY.NS','DIVISLAB.NS','CIPLA.NS','APOLLOHOSP.NS',
-  'BAJAJFINSV.NS','BRITANNIA.NS','EICHERMOT.NS','ADANIENT.NS','ADANIPORTS.NS',
-  'TATACONSUM.NS','HEROMOTOCO.NS','TATASTEEL.NS','M&M.NS','INDUSINDBK.NS',
-  'SBILIFE.NS','HDFCLIFE.NS','UPL.NS','VEDL.NS','SHRIRAMFIN.NS',
+  'RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS', 'INFY.NS', 'ICICIBANK.NS',
+  'HINDUNILVR.NS', 'SBIN.NS', 'BHARTIARTL.NS', 'ITC.NS', 'KOTAKBANK.NS',
+  'LT.NS', 'AXISBANK.NS', 'ASIANPAINT.NS', 'MARUTI.NS', 'SUNPHARMA.NS',
+  'TITAN.NS', 'BAJFINANCE.NS', 'WIPRO.NS', 'ULTRACEMCO.NS', 'HCLTECH.NS',
+  'NESTLEIND.NS', 'TECHM.NS', 'POWERGRID.NS', 'NTPC.NS', 'ONGC.NS',
+  'JSWSTEEL.NS', 'GRASIM.NS', 'BPCL.NS', 'TMCV.NS', 'HINDALCO.NS',
+  'COALINDIA.NS', 'DRREDDY.NS', 'DIVISLAB.NS', 'CIPLA.NS', 'APOLLOHOSP.NS',
+  'BAJAJFINSV.NS', 'BRITANNIA.NS', 'EICHERMOT.NS', 'ADANIENT.NS', 'ADANIPORTS.NS',
+  'TATACONSUM.NS', 'HEROMOTOCO.NS', 'TATASTEEL.NS', 'M&M.NS', 'INDUSINDBK.NS',
+  'SBILIFE.NS', 'HDFCLIFE.NS', 'UPL.NS', 'VEDL.NS', 'SHRIRAMFIN.NS',
 ];
 
-const VALID_INTERVALS = new Set(['1m','2m','5m','15m','30m','60m','1h','1d','1wk','1mo']);
-const VALID_RANGES    = new Set(['1d','5d','1mo','3mo','6mo','1y','2y','5y','10y','ytd','max']);
+const VALID_INTERVALS = new Set(['1m', '2m', '5m', '15m', '30m', '60m', '1h', '1d', '1wk', '1mo']);
+const VALID_RANGES = new Set(['1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', 'ytd', 'max']);
 
 const YF_HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
@@ -133,7 +133,7 @@ const YF_HEADERS = {
 //  HELPERS
 // ─────────────────────────────────────────────────
 function errorMessage(e) {
-  const status   = e.response?.status;
+  const status = e.response?.status;
   const upstream = e.response?.data?.finance?.error?.description || e.response?.data?.message;
   return [status && `HTTP ${status}`, upstream || e.message].filter(Boolean).join(': ') || 'Unknown error';
 }
@@ -149,33 +149,33 @@ async function fetchChartQuote(symbol) {
   const result = data?.chart?.result?.[0];
   if (!result) throw new Error(`No chart data found for ${symbol}`);
 
-  const meta  = result.meta || {};
+  const meta = result.meta || {};
   const quote = result.indicators?.quote?.[0] || {};
-  const last  = arr => {
+  const last = arr => {
     if (!Array.isArray(arr)) return null;
     for (let i = arr.length - 1; i >= 0; i--) {
       if (arr[i] != null) return arr[i];
     }
     return null;
   };
-  const price    = meta.regularMarketPrice ?? last(quote.close);
+  const price = meta.regularMarketPrice ?? last(quote.close);
   const prevClose = meta.previousClose ?? meta.chartPreviousClose ?? null;
-  const change   = price != null && prevClose != null ? price - prevClose : null;
+  const change = price != null && prevClose != null ? price - prevClose : null;
 
   return {
-    symbol:    meta.symbol || symbol,
-    name:      meta.shortName || meta.longName || meta.symbol || symbol,
+    symbol: meta.symbol || symbol,
+    name: meta.shortName || meta.longName || meta.symbol || symbol,
     price,
     change,
     changePct: change != null && prevClose ? (change / prevClose) * 100 : null,
-    open:      last(quote.open),
-    high:      meta.regularMarketDayHigh ?? last(quote.high),
-    low:       meta.regularMarketDayLow  ?? last(quote.low),
+    open: last(quote.open),
+    high: meta.regularMarketDayHigh ?? last(quote.high),
+    low: meta.regularMarketDayLow ?? last(quote.low),
     prevClose,
-    volume:    meta.regularMarketVolume  ?? last(quote.volume),
+    volume: meta.regularMarketVolume ?? last(quote.volume),
     marketCap: null,
     week52High: meta.fiftyTwoWeekHigh ?? null,
-    week52Low:  meta.fiftyTwoWeekLow  ?? null,
+    week52Low: meta.fiftyTwoWeekLow ?? null,
   };
 }
 
@@ -185,15 +185,15 @@ async function fetchCandles(symbol, interval, range) {
   const result = data?.chart?.result?.[0];
   if (!result) return null;
 
-  const ts  = result.timestamp || [];
-  const q   = result.indicators?.quote?.[0] || {};
+  const ts = result.timestamp || [];
+  const q = result.indicators?.quote?.[0] || {};
   const candles = ts
     .map((t, i) => ({
-      time:   t,
-      open:   q.open?.[i],
-      high:   q.high?.[i],
-      low:    q.low?.[i],
-      close:  q.close?.[i],
+      time: t,
+      open: q.open?.[i],
+      high: q.high?.[i],
+      low: q.low?.[i],
+      close: q.close?.[i],
       volume: q.volume?.[i],
     }))
     .filter(c => c.open != null && c.close != null && c.high != null && c.low != null);
@@ -208,12 +208,12 @@ async function fetchCandles(symbol, interval, range) {
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({
-    ok:      true,
+    ok: true,
     version: VERSION,
-    env:     NODE_ENV,
-    uptime:  Math.floor(process.uptime()),
+    env: NODE_ENV,
+    uptime: Math.floor(process.uptime()),
     cache: {
-      keys:  cache.keys().length,
+      keys: cache.keys().length,
       stats: cache.getStats(),
     },
     ts: Date.now(),
@@ -276,14 +276,14 @@ app.get('/api/candles', async (req, res) => {
       return {
         symbol,
         interval: chart.interval,
-        range:    chart.range,
+        range: chart.range,
         meta: {
-          currency:     meta.currency,
-          exchange:     meta.exchangeName,
+          currency: meta.currency,
+          exchange: meta.exchangeName,
           currentPrice: meta.regularMarketPrice,
-          prevClose:    meta.previousClose,
-          high52:       meta.fiftyTwoWeekHigh,
-          low52:        meta.fiftyTwoWeekLow,
+          prevClose: meta.previousClose,
+          high52: meta.fiftyTwoWeekHigh,
+          low52: meta.fiftyTwoWeekLow,
         },
         candles: chart.candles,
       };
@@ -532,4 +532,4 @@ function shutdown(signal) {
   setTimeout(() => process.exit(1), 10000).unref();
 }
 process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGINT',  () => shutdown('SIGINT'));
+process.on('SIGINT', () => shutdown('SIGINT'));
