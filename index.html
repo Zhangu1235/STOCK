@@ -1989,7 +1989,10 @@
 
         <!-- Chat -->
         <div id="tab-chat" class="chat-wrap" style="display:none">
-          <div class="chat-title">AI INVESTMENT ADVISOR</div>
+          <div class="history-header" style="margin-bottom:4px">
+            <div class="chat-title" style="margin:0">AI INVESTMENT ADVISOR</div>
+            <button class="clear-history-btn" onclick="clearChat()" title="Clear all messages">CLEAR</button>
+          </div>
           <div class="chat-messages" id="chatMessages"></div>
           <div class="chat-input-wrap">
             <input class="chat-input" id="chatInput" placeholder="Ask about investments..."
@@ -2791,6 +2794,12 @@
         chatHistory.push({ role: 'assistant', content: 'Sorry, I encountered an error. Please try again.', time: Date.now() });
         renderChat();
       }
+    }
+
+    function clearChat() {
+      chatHistory = [];
+      localStorage.removeItem('chatHistory');
+      renderChat();
     }
 
     function renderChat() {
