@@ -1696,6 +1696,26 @@
       color: var(--red)
     }
 
+    /* Persistent change/remove button */
+    .change-img-persistent-btn {
+      width: 100%;
+      padding: 7px;
+      background: transparent;
+      border: 1px solid var(--border2);
+      border-radius: 4px;
+      color: var(--muted2);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: .5px;
+      cursor: pointer;
+      transition: all .15s
+    }
+
+    .change-img-persistent-btn:hover {
+      border-color: var(--red);
+      color: var(--red)
+    }
+
     /* Action row */
     .ai-action-row {
       display: flex;
@@ -2026,6 +2046,11 @@
               <button class="change-img-btn" onclick="clearImage()" title="Choose different image">✕ Change Image</button>
             </div>
           </div>
+
+          <!-- Change/Remove image button (visible below preview) -->
+          <button class="change-img-persistent-btn" id="changeImgBtn" style="display:none" onclick="clearImage()">
+            ✕ Remove &amp; Upload New Image
+          </button>
 
           <!-- Capture chart button (always visible) -->
           <button class="capture-btn" id="captureBtn" onclick="captureChart()" title="Screenshot the live MKTVIEW chart and send to AI">📷 CAPTURE LIVE CHART</button>
@@ -2516,6 +2541,7 @@
         img.src = dataUrl;
         document.getElementById('uArea').style.display = 'none';
         document.getElementById('imgPreviewWrap').style.display = 'block';
+        document.getElementById('changeImgBtn').style.display = 'block';
         document.getElementById('aiActionRow').style.display = 'block';
         document.getElementById('resultBox').style.display = 'none';
         document.getElementById('aiError').style.display = 'none';
@@ -2633,6 +2659,7 @@
         // Switch to preview state
         document.getElementById('uArea').style.display = 'none';
         document.getElementById('imgPreviewWrap').style.display = 'block';
+        document.getElementById('changeImgBtn').style.display = 'block';
         document.getElementById('aiActionRow').style.display = 'block';
         document.getElementById('resultBox').style.display = 'none';
         document.getElementById('aiError').style.display = 'none';
@@ -2642,12 +2669,16 @@
 
     function clearImage() {
       base64Img = null;
-      // Reset file input so same file can be re-selected
+      // Cross-browser file input reset: replace the input element so any
+      // file — including the same one — triggers onchange again.
       const fi = document.getElementById('fileInput');
-      fi.value = '';
+      const newFi = fi.cloneNode(true);
+      newFi.addEventListener('change', () => onFile(newFi.files[0]));
+      fi.parentNode.replaceChild(newFi, fi);
       // Reset UI back to upload state
-      document.getElementById('uArea').style.display = 'flex';
+      document.getElementById('uArea').style.display = 'block';
       document.getElementById('imgPreviewWrap').style.display = 'none';
+      document.getElementById('changeImgBtn').style.display = 'none';
       document.getElementById('aiActionRow').style.display = 'none';
       document.getElementById('resultBox').style.display = 'none';
       document.getElementById('aiError').style.display = 'none';
