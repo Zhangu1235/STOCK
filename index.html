@@ -1929,8 +1929,12 @@
             <button class="tf" id="rsiBtn" onclick="toggleIndicator('rsi')" title="Toggle RSI">RSI</button>
             <button class="tf" id="macdBtn" onclick="toggleIndicator('macd')" title="Toggle MACD">MACD</button>
             <button class="tf" id="volBtn" onclick="toggleIndicator('vol')" title="Toggle Volume">VOL</button>
+            <button class="tf" id="ema9Btn" onclick="toggleEMA(9)" title="EMA 9">E9</button>
+            <button class="tf" id="ema20Btn" onclick="toggleEMA(20)" title="EMA 20">E20</button>
+            <button class="tf" id="ema50Btn" onclick="toggleEMA(50)" title="EMA 50">E50</button>
             <div class="sep"></div>
             <button class="tf" id="alertBtn" onclick="setAlert()" title="Set Price Alert">🔔</button>
+            <button class="tf" id="exportBtn" onclick="exportChartPNG()" title="Export chart as PNG">⬇PNG</button>
             <button class="tf" id="chartTypeBtn" onclick="toggleChartType()">BAR</button>
           </div>
         </div>
@@ -1989,11 +1993,18 @@
         <div class="r-tab" onclick="rTab('news',this)">NEWS</div>
         <div class="r-tab" onclick="rTab('chat',this)">ADVISOR</div>
         <div class="r-tab" onclick="rTab('ai',this)">AI SCAN</div>
+        <div class="r-tab" onclick="rTab('journal',this)">JOURNAL</div>
       </div>
       <div class="r-body">
 
         <!-- Watchlist -->
-        <div id="tab-watchlist" class="wl-list"></div>
+        <div id="tab-watchlist" style="display:flex;flex-direction:column;flex:1;overflow:hidden">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--border);flex-shrink:0">
+            <span style="font-size:8px;letter-spacing:1.5px;color:var(--muted2)">WATCHLIST</span>
+            <button id="addWlBtn" onclick="addToWatchlist()" style="background:rgba(0,212,126,.1);border:1px solid rgba(0,212,126,.3);color:var(--green);font-family:'JetBrains Mono',monospace;font-size:9px;padding:3px 9px;border-radius:3px;cursor:pointer;letter-spacing:.5px" title="Add current symbol">+ ADD</button>
+          </div>
+          <div id="wl-list-inner" class="wl-list"></div>
+        </div>
 
         <!-- Heatmap -->
         <div id="tab-heatmap" class="hm-wrap" style="display:none">
@@ -2099,6 +2110,25 @@
           </div>
         </div>
 
+        <!-- Trade Journal -->
+        <div id="tab-journal" class="news-wrap" style="display:none">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div class="news-title">TRADE JOURNAL</div>
+            <button onclick="clearJournal()" style="background:none;border:1px solid var(--border2);color:var(--muted2);font-family:'JetBrains Mono',monospace;font-size:7px;padding:2px 7px;border-radius:2px;cursor:pointer;letter-spacing:.5px" onmouseover="this.style.color='var(--red)';this.style.borderColor='var(--red)'" onmouseout="this.style.color='var(--muted2)';this.style.borderColor='var(--border2)'">CLEAR</button>
+          </div>
+          <div style="display:flex;gap:4px;margin-bottom:8px">
+            <input id="jSym" placeholder="Symbol" style="flex:1;background:var(--panel);border:1px solid var(--border2);border-radius:3px;padding:5px 8px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text);outline:none" onfocus="this.style.borderColor='var(--green)'" onblur="this.style.borderColor='var(--border2)'">
+            <select id="jType" style="background:var(--panel);border:1px solid var(--border2);border-radius:3px;padding:5px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text);outline:none;cursor:pointer">
+              <option value="BUY">BUY</option>
+              <option value="SELL">SELL</option>
+            </select>
+            <input id="jPrice" placeholder="₹Price" type="number" style="width:70px;background:var(--panel);border:1px solid var(--border2);border-radius:3px;padding:5px 8px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text);outline:none" onfocus="this.style.borderColor='var(--green)'" onblur="this.style.borderColor='var(--border2)'">
+          </div>
+          <input id="jNote" placeholder="Note (optional)..." style="width:100%;background:var(--panel);border:1px solid var(--border2);border-radius:3px;padding:5px 8px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text);outline:none;margin-bottom:6px" onfocus="this.style.borderColor='var(--green)'" onblur="this.style.borderColor='var(--border2)'">
+          <button onclick="addJournalEntry()" style="width:100%;padding:8px;background:var(--green);border:none;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#050d08;cursor:pointer;letter-spacing:1px;margin-bottom:10px" onmouseover="this.style.background='var(--green2)'" onmouseout="this.style.background='var(--green)'">+ LOG TRADE</button>
+          <div id="journalList"></div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -2135,13 +2165,15 @@
     let activeIdx = 0;
     let chartInterval = '1m';
     let chartRange = '1d';
-    let chartType = 'candle';   // 'candle' | 'bar' | 'line'
+    let chartType = 'candle';
     let lwChart = null;
     let candleSeries = null;
     let lineSeries = null;
     let rsiSeries = null;
     let macdSeries = null;
     let volumeSeries = null;
+    let emaSeries = {}; // { 9: series, 20: series, 50: series }
+    let lastCandles = [];
     let stocksCache = [];
     let base64Img = null;
     let refreshTimer = null;
@@ -2149,6 +2181,8 @@
     let isDarkTheme = localStorage.getItem('theme') !== 'light';
     let priceAlerts = JSON.parse(localStorage.getItem('priceAlerts') || '{}');
     let chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+    let customWatchlist = JSON.parse(localStorage.getItem('customWatchlist') || '[]');
+    let tradeJournal = JSON.parse(localStorage.getItem('tradeJournal') || '[]');
 
     // ─────────────────────────────────────────────────
     //  INIT
@@ -2200,9 +2234,9 @@
       const isOpen = isWeekday && (hh > 9 || (hh === 9 && mm >= 15)) && (hh < 15 || (hh === 15 && mm <= 30));
       const pre = isWeekday && hh === 9 && mm < 15;
       const statusEl = document.getElementById('mkt-status');
-      if (isOpen) { statusEl.textContent = 'MARKET OPEN'; statusEl.style.color = 'var(--green)'; }
-      else if (pre) { statusEl.textContent = 'PRE-MARKET'; statusEl.style.color = 'var(--amber)'; }
-      else { statusEl.textContent = 'MARKET CLOSED'; statusEl.style.color = 'var(--muted2)'; }
+      if (isOpen) { statusEl.textContent = '● ' + getMarketCountdown(); statusEl.style.color = 'var(--green)'; }
+      else if (pre) { statusEl.textContent = '◐ ' + getMarketCountdown(); statusEl.style.color = 'var(--amber)'; }
+      else { statusEl.textContent = getMarketCountdown(); statusEl.style.color = 'var(--muted2)'; }
     }
 
     // ─────────────────────────────────────────────────
@@ -2250,18 +2284,26 @@
     }
 
     function renderWatchlist(stocks) {
-      const el = document.getElementById('tab-watchlist');
-      el.innerHTML = stocks.map(s => {
-        const up = s.changePct >= 0;
-        return `<div class="wl-row" onclick="selectStock('${s.symbol}','${s.name?.replace(/'/g, '')}')" title="${s.name}">
+      const el = document.getElementById('wl-list-inner');
+      if (!el) return;
+      // merge nifty50 + custom (dedupe)
+      const customSyms = customWatchlist.map(s => s.symbol);
+      const all = [
+        ...stocks,
+        ...customWatchlist.filter(c => !stocks.find(s => s.symbol === c.symbol))
+      ];
+      el.innerHTML = all.map(s => {
+        const up = (s.changePct || 0) >= 0;
+        const isCustom = customSyms.includes(s.symbol) && !stocks.find(x => x.symbol === s.symbol);
+        return `<div class="wl-row" onclick="selectStock('${s.symbol}','${(s.name||'').replace(/'/g, '')}')" title="${s.name || s.symbol}">
       <div class="wl-l">
-        <div class="wl-sym">${s.symbol}</div>
-        <div class="wl-name">${(s.name || '').slice(0, 22)}</div>
+        <div class="wl-sym">${s.symbol.replace('.NS','')}<span style="font-size:7px;color:var(--purple);margin-left:4px">${isCustom?'★':''}</span></div>
+        <div class="wl-name">${(s.name || s.symbol).slice(0, 22)}</div>
       </div>
       <div class="wl-r">
         <div class="wl-price">₹${fmt(s.price)}</div>
-        <div class="wl-chg ${up ? 'up' : 'down'}">${up ? '▲' : '▼'} ${Math.abs(s.changePct?.toFixed(2))}%</div>
-        <div class="wl-cap">${fmtCap(s.marketCap)}</div>
+        <div class="wl-chg ${up?'up':'down'}">${up?'▲':'▼'} ${Math.abs((s.changePct||0).toFixed(2))}%</div>
+        ${isCustom ? `<div onclick="event.stopPropagation();removeFromWatchlist('${s.symbol}')" style="font-size:8px;color:var(--red);cursor:pointer;margin-top:1px">✕ remove</div>` : `<div class="wl-cap">${fmtCap(s.marketCap)}</div>`}
       </div>
     </div>`;
       }).join('');
@@ -2365,12 +2407,12 @@
           close: c.close,
           volume: c.volume,
         }));
+        lastCandles = candles;
 
         if (chartType === 'candle' || chartType === 'bar') {
           candleSeries.setData(candles);
         }
 
-        // Volume bars
         if (volumeSeries) {
           const volData = candles.map(c => ({
             time: c.time,
@@ -2380,17 +2422,15 @@
           volumeSeries.setData(volData);
         }
 
-        // Update indicators if active
         if (rsiSeries) calculateRSI(candles);
         if (macdSeries) calculateMACD(candles);
+        Object.entries(emaSeries).forEach(([p, s]) => applyEMAToSeries(s, candles, +p));
 
         lwChart.timeScale().fitContent();
 
-        // Set last bar OHLCV
         const last = candles[candles.length - 1];
         if (last) setOHLCV(last.open, last.high, last.low, last.close, last.volume || 0);
 
-        // Update 52w from meta
         if (json.meta) {
           document.getElementById('ov-h52').textContent = json.meta.high52 ? fmt(json.meta.high52) : '—';
           document.getElementById('ov-l52').textContent = json.meta.low52 ? fmt(json.meta.low52) : '—';
@@ -2511,17 +2551,24 @@
     }
 
     function rTab(id, el) {
-      ['watchlist', 'heatmap', 'news', 'chat', 'ai'].forEach(t => {
+      const tabs = ['watchlist', 'heatmap', 'news', 'chat', 'ai', 'journal'];
+      tabs.forEach(t => {
         const el2 = document.getElementById('tab-' + t);
-        el2.style.display = t === id ? (t === 'watchlist' ? '' : 'flex') : 'none';
-        if (t === 'watchlist') el2.style.display = t === id ? '' : 'none';
+        if (!el2) return;
+        if (t === id) {
+          el2.style.display = (t === 'watchlist') ? 'flex' : 'flex';
+          el2.style.flexDirection = 'column';
+        } else {
+          el2.style.display = 'none';
+        }
       });
       document.querySelectorAll('.r-tab').forEach((t, i) => {
-        t.classList.toggle('act', ['watchlist','heatmap','news','chat','ai'][i] === id);
+        t.classList.toggle('act', tabs[i] === id);
       });
       if (id === 'ai') renderHistory();
       if (id === 'news') loadNews();
       if (id === 'chat') initChat();
+      if (id === 'journal') renderJournal();
     }
 
     // ─────────────────────────────────────────────────
@@ -2808,11 +2855,18 @@
       chatHistory.push({ role: 'user', content: message, time: Date.now() });
       renderChat();
 
+      // Build context from current chart
+      const last = lastCandles[lastCandles.length - 1];
+      const ctx = last
+        ? `[Context: ${activeSymbol} | O:${last.open?.toFixed(2)} H:${last.high?.toFixed(2)} L:${last.low?.toFixed(2)} C:${last.close?.toFixed(2)} Vol:${last.volume}]`
+        : '';
+      const contextualMsg = ctx ? `${ctx}\n${message}` : message;
+
       try {
         const res = await fetch(`${API}/api/chat`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message, history: chatHistory.slice(-20) }) // Send last 20 messages
+          body: JSON.stringify({ message: contextualMsg, history: chatHistory.slice(-20) })
         });
         const json = await res.json();
         if (!json.success) throw new Error(json.error);
@@ -2934,6 +2988,150 @@
         delete priceAlerts[symbol];
         localStorage.setItem('priceAlerts', JSON.stringify(priceAlerts));
       }
+    }
+
+    // ─────────────────────────────────────────────────
+    //  EMA OVERLAY
+    // ─────────────────────────────────────────────────
+    const EMA_COLORS = { 9: '#3d9fff', 20: '#ffb340', 50: '#a78bfa' };
+    function toggleEMA(period) {
+      const btn = document.getElementById('ema' + period + 'Btn');
+      if (emaSeries[period]) {
+        lwChart.removeSeries(emaSeries[period]);
+        delete emaSeries[period];
+        btn.classList.remove('act');
+      } else {
+        const s = lwChart.addLineSeries({ color: EMA_COLORS[period] || '#fff', lineWidth: 1, title: 'EMA' + period, lastValueVisible: false, priceLineVisible: false });
+        emaSeries[period] = s;
+        btn.classList.add('act');
+        applyEMAToSeries(s, lastCandles, period);
+      }
+    }
+    function applyEMAToSeries(series, candles, period) {
+      if (!series || candles.length < period) return;
+      const closes = candles.map(c => c.close);
+      const ema = calculateEMA(closes, period);
+      series.setData(candles.map((c, i) => ({ time: c.time, value: ema[i] })));
+    }
+
+    // ─────────────────────────────────────────────────
+    //  EXPORT CHART PNG
+    // ─────────────────────────────────────────────────
+    function exportChartPNG() {
+      const canvas = document.getElementById('chart').querySelector('canvas');
+      if (!canvas) { alert('Chart not ready'); return; }
+      const a = document.createElement('a');
+      a.href = canvas.toDataURL('image/png');
+      a.download = `${activeSymbol.replace('.NS','')}_${chartInterval}_${Date.now()}.png`;
+      a.click();
+    }
+
+    // ─────────────────────────────────────────────────
+    //  CUSTOM WATCHLIST
+    // ─────────────────────────────────────────────────
+    function addToWatchlist() {
+      const sym = activeSymbol;
+      if (customWatchlist.find(s => s.symbol === sym)) {
+        setFooter(`${sym} already in watchlist`);
+        return;
+      }
+      const name = document.getElementById('c-sym').textContent;
+      customWatchlist.push({ symbol: sym, name });
+      localStorage.setItem('customWatchlist', JSON.stringify(customWatchlist));
+      // Fetch live quote for price
+      fetch(`${API}/api/quote?symbol=${encodeURIComponent(sym)}`)
+        .then(r => r.json())
+        .then(j => {
+          if (j.success) {
+            const i = customWatchlist.findIndex(s => s.symbol === sym);
+            if (i >= 0) customWatchlist[i] = { ...customWatchlist[i], ...j.data };
+            localStorage.setItem('customWatchlist', JSON.stringify(customWatchlist));
+            renderWatchlist(stocksCache);
+          }
+        }).catch(() => {});
+      setFooter(`★ ${sym} added to watchlist`);
+      renderWatchlist(stocksCache);
+    }
+    function removeFromWatchlist(sym) {
+      customWatchlist = customWatchlist.filter(s => s.symbol !== sym);
+      localStorage.setItem('customWatchlist', JSON.stringify(customWatchlist));
+      renderWatchlist(stocksCache);
+    }
+
+    // ─────────────────────────────────────────────────
+    //  MARKET COUNTDOWN
+    // ─────────────────────────────────────────────────
+    function getMarketCountdown() {
+      const now = new Date();
+      const ist = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+      const hh = ist.getHours(), mm = ist.getMinutes(), ss = ist.getSeconds();
+      const isWeekday = ist.getDay() >= 1 && ist.getDay() <= 5;
+      if (!isWeekday) return 'CLOSED (WEEKEND)';
+      const totalSec = hh * 3600 + mm * 60 + ss;
+      const openSec = 9 * 3600 + 15 * 60;
+      const closeSec = 15 * 3600 + 30 * 60;
+      if (totalSec < openSec) {
+        const diff = openSec - totalSec;
+        return `OPENS IN ${String(Math.floor(diff/3600)).padStart(2,'0')}:${String(Math.floor((diff%3600)/60)).padStart(2,'0')}:${String(diff%60).padStart(2,'0')}`;
+      } else if (totalSec <= closeSec) {
+        const diff = closeSec - totalSec;
+        return `CLOSES IN ${String(Math.floor(diff/3600)).padStart(2,'0')}:${String(Math.floor((diff%3600)/60)).padStart(2,'0')}:${String(diff%60).padStart(2,'0')}`;
+      }
+      return 'CLOSED';
+    }
+
+    // ─────────────────────────────────────────────────
+    //  TRADE JOURNAL
+    // ─────────────────────────────────────────────────
+    function addJournalEntry() {
+      const sym = document.getElementById('jSym').value.trim().toUpperCase();
+      const type = document.getElementById('jType').value;
+      const price = parseFloat(document.getElementById('jPrice').value);
+      const note = document.getElementById('jNote').value.trim();
+      if (!sym || isNaN(price)) { alert('Enter symbol and price'); return; }
+      tradeJournal.unshift({ id: Date.now(), sym, type, price, note, ts: Date.now() });
+      if (tradeJournal.length > 50) tradeJournal = tradeJournal.slice(0, 50);
+      localStorage.setItem('tradeJournal', JSON.stringify(tradeJournal));
+      document.getElementById('jSym').value = '';
+      document.getElementById('jPrice').value = '';
+      document.getElementById('jNote').value = '';
+      renderJournal();
+    }
+    function clearJournal() {
+      if (!confirm('Clear all journal entries?')) return;
+      tradeJournal = [];
+      localStorage.removeItem('tradeJournal');
+      renderJournal();
+    }
+    function removeJournalEntry(id) {
+      tradeJournal = tradeJournal.filter(e => e.id !== id);
+      localStorage.setItem('tradeJournal', JSON.stringify(tradeJournal));
+      renderJournal();
+    }
+    function renderJournal() {
+      const el = document.getElementById('journalList');
+      if (!el) return;
+      if (!tradeJournal.length) {
+        el.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:9px;padding:20px">No trades logged yet.</div>';
+        return;
+      }
+      el.innerHTML = tradeJournal.map(e => {
+        const isBuy = e.type === 'BUY';
+        const col = isBuy ? 'var(--green)' : 'var(--red)';
+        const d = new Date(e.ts).toLocaleString('en-IN', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+        return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:9px 10px;margin-bottom:6px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:10px;font-weight:700">${e.sym}</span>
+              <span style="font-size:8px;font-weight:700;color:${col};background:${isBuy?'rgba(0,212,126,.1)':'rgba(255,61,95,.1)'};border:1px solid ${col};padding:1px 6px;border-radius:2px">${e.type}</span>
+              <span style="font-size:10px;font-weight:600">₹${e.price.toLocaleString('en-IN',{minimumFractionDigits:2})}</span>
+            </div>
+            <button onclick="removeJournalEntry(${e.id})" style="background:none;border:none;color:var(--muted2);cursor:pointer;font-size:10px" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--muted2)'">✕</button>
+          </div>
+          <div style="font-size:7px;color:var(--muted2)">${d}</div>
+          ${e.note ? `<div style="font-size:8px;color:var(--muted2);margin-top:4px;line-height:1.4">${e.note}</div>` : ''}
+        </div>`;
+      }).join('');
     }
 
     function calculateRSI(candles, period = 14) {
